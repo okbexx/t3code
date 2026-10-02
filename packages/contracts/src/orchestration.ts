@@ -4,6 +4,7 @@ import * as SchemaIssue from "effect/SchemaIssue";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 import * as Struct from "effect/Struct";
 import { OrchestrationMessageContext } from "./composerContext.ts";
+import { CollaborationRequest } from "./threadCollaboration.ts";
 import { ProviderOptionSelections } from "./model.ts";
 import { RepositoryIdentity, ThreadEnvMode } from "./environment.ts";
 import {
@@ -1658,7 +1659,16 @@ const ThreadPullRequestLinkSyncCommand = Schema.Struct({
   stack: Schema.NullOr(ThreadPullRequestStack),
 });
 
+const ThreadCollaborationRecordCommand = Schema.Struct({
+  type: Schema.Literal("thread.collaboration.record"),
+  commandId: CommandId,
+  threadId: ThreadId,
+  request: CollaborationRequest,
+  delivery: Schema.optional(ThreadTurnStartCommand),
+});
+
 const InternalOrchestrationCommand = Schema.Union([
+  ThreadCollaborationRecordCommand,
   ThreadAutoSettleCommand,
   ThreadPullRequestSyncCommand,
   ThreadPullRequestLinkSyncCommand,

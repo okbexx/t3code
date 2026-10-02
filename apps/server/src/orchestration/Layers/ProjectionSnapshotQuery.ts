@@ -1926,6 +1926,9 @@ pending_approval_requests AS (
           FROM user_input_lifecycle
           WHERE request_order = 1
             AND kind = 'user-input.requested'
+          UNION ALL
+          SELECT activity_id FROM projection_thread_activities
+          WHERE thread_id = ${threadId} AND kind = 'thread.collaboration'
         )
   `;
 

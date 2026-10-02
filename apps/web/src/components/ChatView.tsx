@@ -1,3 +1,4 @@
+import { ThreadCollaboration } from "./chat/ThreadCollaboration";
 import { isChatGptUsageLimitError } from "@t3tools/shared/usageLimits";
 import { useLoadBalancedEnvironment } from "../hooks/useLoadBalancedEnvironment";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
@@ -9818,6 +9819,11 @@ export default function ChatView(props: ChatViewProps) {
                 }}
               />
             </div>
+            <ThreadCollaboration
+              activities={threadActivities}
+              environmentId={routeThreadRef.environmentId}
+              threadId={routeThreadRef.threadId}
+            />
             {/* Messages Wrapper */}
             <div className="relative flex min-h-0 flex-1 flex-col bg-background">
               {/* Messages — LegendList handles virtualization and scrolling internally */}

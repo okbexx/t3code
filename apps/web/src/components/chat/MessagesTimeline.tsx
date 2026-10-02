@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowUpIcon, ClockIcon } from "lucide-react";
 import { ReadOnlySourcePreview } from "../files/AttachmentFilePreview";
 import { useRightPanelStore } from "~/rightPanelStore";
@@ -1985,7 +1986,15 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   const unknownAttachments = (row.message.attachments ?? []).filter(
     (attachment) => !isImageAttachment(attachment) && !isFileAttachment(attachment),
   );
-  const resolvedContext = useMemo(() => resolveUserMessageContext(row.message), [row.message]);
+  const resolvedContext = useMemo(
+    () =>
+      resolveUserMessageContext(
+        row.message.context?.collaboration
+          ? { ...row.message, text: row.message.context.collaboration.text }
+          : row.message,
+      ),
+    [row.message],
+  );
   const previewImages = useMemo(
     () => userImages.filter((image) => image.name.startsWith("preview-annotation-")),
     [userImages],
@@ -2111,7 +2120,26 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   return (
     <div className="group flex flex-col items-end gap-1">
       <div className="relative max-w-[80%] rounded-2xl bg-message p-3 text-message-foreground">
-        <MessageAuthorHeading>You</MessageAuthorHeading>
+        <MessageAuthorHeading>
+          {row.message.context?.collaboration
+            ? `Agent · ${row.message.context.collaboration.source.title}`
+            : "You"}
+        </MessageAuthorHeading>
+        {row.message.context?.collaboration ? (
+          <p className="mb-2 text-xs text-muted-foreground">
+            <Link
+              to="/$environmentId/$threadId"
+              params={{
+                environmentId: ctx.activeThreadEnvironmentId,
+                threadId: row.message.context.collaboration.source.threadId,
+              }}
+            >
+              Open source thread
+            </Link>{" "}
+            · {row.message.context.collaboration.kind} · Request{" "}
+            {row.message.context.collaboration.requestId.slice(0, 12)}
+          </p>
+        ) : null}
         {(regularImages.length > 0 || userVideos.length > 0) && (
           <div className="mb-2 grid max-w-[210px] grid-cols-2 gap-2">
             {regularImages.map((image) => (

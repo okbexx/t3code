@@ -1,3 +1,4 @@
+import * as ThreadCollaboration from "../ThreadCollaboration.ts";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
@@ -32,6 +33,14 @@ describe("OrchestrationReactor", () => {
 
     runtime = ManagedRuntime.make(
       Layer.effect(OrchestrationReactor, makeOrchestrationReactor).pipe(
+        Layer.provide(
+          Layer.mock(ThreadCollaboration.ThreadCollaboration)({
+            start: () => {
+              started.push("thread-collaboration");
+              return Effect.void;
+            },
+          }),
+        ),
         Layer.provideMerge(
           Layer.succeed(StorageCleanup, {
             start: () => {
@@ -125,6 +134,7 @@ describe("OrchestrationReactor", () => {
     expect(started).toEqual([
       "provider-runtime-ingestion",
       "provider-command-reactor",
+      "thread-collaboration",
       "checkpoint-reactor",
       "thread-deletion-reactor",
       "thread-pull-request-reactor",

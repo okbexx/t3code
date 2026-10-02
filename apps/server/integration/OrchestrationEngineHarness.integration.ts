@@ -1,3 +1,5 @@
+import * as ThreadCollaboration from "../src/orchestration/ThreadCollaboration.ts";
+import { ProjectionThreadActivityRepositoryLive } from "../src/persistence/Layers/ProjectionThreadActivities.ts";
 // @effect-diagnostics nodeBuiltinImport:off
 import * as NodeChildProcess from "node:child_process";
 
@@ -383,6 +385,12 @@ export const makeOrchestrationIntegrationHarness = (
       Layer.provideMerge(VcsProcess.layer),
     );
     const orchestrationReactorLayer = OrchestrationReactorLive.pipe(
+      Layer.provideMerge(
+        ThreadCollaboration.layer.pipe(
+          Layer.provide(runtimeServicesLayer),
+          Layer.provide(ProjectionThreadActivityRepositoryLive),
+        ),
+      ),
       Layer.provideMerge(
         Layer.succeed(StorageCleanup.StorageCleanup, {
           start: () => Effect.void,

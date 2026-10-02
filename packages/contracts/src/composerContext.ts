@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { CollaborationParticipant } from "./threadCollaboration.ts";
 
 import {
   ForwardCompatibleArray,
@@ -260,6 +261,15 @@ const COMPOSER_CONTEXT_MAX_SERIALIZED_CHARS = 16_000_000;
 /** Structured context riding on a user message. Undecodable records are dropped, not fatal. */
 export const OrchestrationMessageContext = Schema.Struct({
   version: Schema.Literal(1),
+  collaboration: Schema.optional(
+    Schema.Struct({
+      requestId: Schema.String,
+      messageId: Schema.String,
+      kind: Schema.String,
+      source: CollaborationParticipant,
+      text: Schema.String,
+    }),
+  ),
   records: Schema.Array(Schema.Unknown)
     .check(
       Schema.isMaxLength(COMPOSER_CONTEXT_MAX_RECORDS),

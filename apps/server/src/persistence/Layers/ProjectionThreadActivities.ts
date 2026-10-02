@@ -125,6 +125,16 @@ const makeProjectionThreadActivityRepository = Effect.gen(function* () {
       `,
   });
 
+  const listKindRows = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: ProjectionThreadActivityDbRowSchema,
+    execute: (kind) => sql`
+      SELECT activity_id AS "activityId", thread_id AS "threadId", turn_id AS "turnId",
+        tone, kind, summary, payload_json AS "payload", sequence, created_at AS "createdAt"
+      FROM projection_thread_activities WHERE kind = ${kind} ORDER BY sequence ASC
+    `,
+  });
+
   const listUserInputLifecycleActivityRows = SqlSchema.findAll({
     Request: ListProjectionThreadActivitiesInput,
     Result: ProjectionThreadActivityDbRowSchema,
@@ -252,6 +262,16 @@ const makeProjectionThreadActivityRepository = Effect.gen(function* () {
     );
 
   return {
+    listByKind: (kind) =>
+      listKindRows(kind).pipe(
+        Effect.mapError(
+          toPersistenceSqlOrDecodeError(
+            "ProjectionThreadActivityRepository.listByKind:query",
+            "ProjectionThreadActivityRepository.listByKind:decodeRows",
+          ),
+        ),
+        Effect.map((rows) => rows.map(toProjectionThreadActivity)),
+      ),
     upsert,
     listByThreadId,
     listUserInputLifecycleByThreadId,

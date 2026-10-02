@@ -1,4 +1,5 @@
 import {
+  COLLABORATION_ACTIVITY_KIND,
   EventId,
   MAX_SCRIPT_ID_LENGTH,
   SCRIPT_RUN_COMMAND_PATTERN,
@@ -1385,6 +1386,59 @@ export const decideOrchestrationCommand = Effect.fn("decideOrchestrationCommand"
           updatedAt: occurredAt,
         },
       };
+    }
+
+    case "thread.collaboration.record": {
+      const events: Array<Omit<OrchestrationEvent, "sequence">> = [];
+      if (command.delivery !== undefined) {
+        const delivery = command.delivery;
+        const target = yield* requireThread({ readModel, command, threadId: delivery.threadId });
+        if (target.archivedAt !== null || target.session?.status === "error") {
+          return yield* new OrchestrationCommandInvariantError({
+            commandType: command.type,
+            detail: "Collaboration target is unavailable.",
+          });
+        }
+        if (
+          target.session?.status === "running" ||
+          target.session?.status === "starting" ||
+          openRequests(target).size > 0 ||
+          hasQueuedTurnStartForThread(target, command.request.updatedAt)
+        ) {
+          return yield* new OrchestrationCommandInvariantError({
+            commandType: command.type,
+            detail: "Collaboration target is busy.",
+          });
+        }
+        const deliveryEvents = yield* decideOrchestrationCommand({ command: delivery, readModel });
+        events.push(...(Array.isArray(deliveryEvents) ? deliveryEvents : [deliveryEvents]));
+      }
+      // One transaction records both participants and the optional normal turn submission.
+      // Keep the command's aggregate last so its durable idempotency receipt has the same owner.
+      for (const threadId of [command.request.target.threadId, command.request.source.threadId]) {
+        events.push({
+          ...(yield* withEventBase({
+            aggregateKind: "thread",
+            aggregateId: threadId,
+            occurredAt: command.request.updatedAt,
+            commandId: command.commandId,
+          })),
+          type: "thread.activity-appended",
+          payload: {
+            threadId,
+            activity: {
+              id: EventId.make(`collaboration:${command.request.id}:${threadId}`),
+              kind: COLLABORATION_ACTIVITY_KIND,
+              tone: command.request.status === "failed" ? "error" : "info",
+              summary: `${command.request.source.title} → ${command.request.target.title}: ${command.request.status}`,
+              payload: command.request,
+              turnId: null,
+              createdAt: command.request.createdAt,
+            },
+          },
+        });
+      }
+      return events;
     }
 
     case "thread.turn.start": {
