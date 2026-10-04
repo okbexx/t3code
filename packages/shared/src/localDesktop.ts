@@ -1,6 +1,7 @@
 /** Local packaging identity. Keep this commit out of upstream contribution branches. */
 export const localDesktop = {
   name: "T3 Code Local",
+  packageName: "t3code-local",
   appId: "com.okbexx.t3code.local",
   homeDirectory: ".t3-local",
   electronProfile: "t3code-local-v2",
