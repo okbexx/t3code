@@ -7,6 +7,7 @@ The app is `T3 Code Local`, with bundle ID `com.okbexx.t3code.local`, a blue
 development icon, server data in `~/.t3-local/userdata`, and Chromium data in
 `~/Library/Application Support/t3code-local-v2`. Its default backend port is 13774. It registers `t3code-local` instead of the official app's URL handler.
 Local artifacts have no automatic update feed.
+They use an ad-hoc signature for local execution, without an Apple distribution certificate.
 
 The wrapper selects Node 24.20.0 through Vite Plus and Rust 1.95.0 through
 rustup, without changing the machine's default toolchains. If needed, install
@@ -38,6 +39,8 @@ git merge --no-ff fix/example
 
 Each build writes `release/local/<version>/build.json`, recording the exact
 source commit, upstream base and version tag. About shows the source commit.
+The upstream release script stamps the same version into the desktop, server
+and web packages during the build; their source manifests are restored afterward.
 The latest successful build is recorded in `release/local/latest.json`.
 Installation preserves the previous app under
 `release/local/installed-backups/<timestamp>/`; restore that bundle to

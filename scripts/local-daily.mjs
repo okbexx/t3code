@@ -3,6 +3,7 @@ import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
 import { localDesktop } from "../packages/shared/src/localDesktop.ts";
+import { releasePackageFiles } from "./update-release-package-versions.ts";
 
 const root = NodePath.resolve(NodePath.dirname(NodeURL.fileURLToPath(import.meta.url)), "..");
 const appPath = `/Applications/${localDesktop.name}.app`;
@@ -128,25 +129,35 @@ function build() {
   const version = `${baseVersion}-local.${stamp()}.g${sourceCommit.slice(0, 8)}`;
   const outputDir = NodePath.join(releaseRoot, version);
   NodeFS.mkdirSync(outputDir, { recursive: true });
-  run(process.execPath, [
-    "scripts/build-desktop-artifact.ts",
-    "--platform",
-    "mac",
-    "--target",
-    "zip",
-    "--arch",
-    "arm64",
-    "--build-version",
-    version,
-    "--output-dir",
-    outputDir,
-  ]);
+  const packageSnapshots = releasePackageFiles.map((file) => {
+    const path = NodePath.join(root, file);
+    return [path, NodeFS.readFileSync(path)];
+  });
+  try {
+    run(process.execPath, ["scripts/update-release-package-versions.ts", version]);
+    run(process.execPath, [
+      "scripts/build-desktop-artifact.ts",
+      "--platform",
+      "mac",
+      "--target",
+      "zip",
+      "--arch",
+      "arm64",
+      "--build-version",
+      version,
+      "--output-dir",
+      outputDir,
+    ]);
+  } finally {
+    for (const [path, contents] of packageSnapshots) NodeFS.writeFileSync(path, contents);
+  }
   // The upstream builder exports the zip and removes its temporary .app staging directory.
   const archive = NodePath.join(outputDir, `T3-Code-Local-${version}-arm64.zip`);
   const unpackedDir = NodePath.join(outputDir, "mac-arm64");
   run("ditto", ["-x", "-k", archive, unpackedDir]);
   const builtApp = NodePath.join(unpackedDir, `${localDesktop.name}.app`);
   validateApp(builtApp, version);
+  run("codesign", ["--verify", "--deep", "--strict", builtApp]);
   const manifest = {
     version,
     sourceCommit,
