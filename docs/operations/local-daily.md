@@ -46,6 +46,9 @@ Installation preserves the previous app under
 `release/local/installed-backups/<timestamp>/`; restore that bundle to
 `/Applications/T3 Code Local.app` with the local app closed if rollback is needed.
 The server data directory stays in place when replacing the app.
+If macOS presents a Keychain prompt for the local app, complete it in the system
+dialog. A pending prompt can block Electron's quit request; the installer times
+out without replacing the running app. After resolving it, rerun `install`.
 
 The local app starts with its own environment. Configure Codex using the existing
 CLI to reuse `~/.codex/config.toml`, or add other providers in Settings. To connect

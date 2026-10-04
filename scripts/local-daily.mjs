@@ -11,12 +11,13 @@ const releaseRoot = NodePath.join(root, "release", "local");
 const manifestPath = NodePath.join(releaseRoot, "latest.json");
 const command = process.argv[2] ?? "help";
 
-function run(binary, args, { cwd = root, capture = false } = {}) {
+function run(binary, args, { cwd = root, capture = false, timeout } = {}) {
   const result = NodeChildProcess.spawnSync(binary, args, {
     cwd,
     env: { ...process.env, VP_NODE_VERSION: "24.20.0" },
     encoding: "utf8",
     stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
+    timeout,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -187,14 +188,19 @@ function install() {
   // Target only the local bundle; never quit the official app hosting this agent.
   let backupApp;
   if (NodeFS.existsSync(appPath)) {
-    run("osascript", [
-      "-e",
-      `if application id "${localDesktop.appId}" is running then tell application id "${localDesktop.appId}" to quit`,
-    ]);
+    run(
+      "osascript",
+      [
+        "-e",
+        `if application id "${localDesktop.appId}" is running then tell application id "${localDesktop.appId}" to quit`,
+      ],
+      { timeout: 30_000 },
+    );
     const deadline = Date.now() + 30_000;
     while (
       run("osascript", ["-e", `application id "${localDesktop.appId}" is running`], {
         capture: true,
+        timeout: 5_000,
       }) === "true"
     ) {
       if (Date.now() >= deadline)
