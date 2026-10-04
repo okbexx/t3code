@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+case "$(uname -s):$(uname -m)" in
+  Darwin:arm64) ;;
+  *) echo "This workflow requires Apple Silicon macOS." >&2; exit 1 ;;
+esac
+export VP_NODE_VERSION=24.20.0
+exec vp env exec --node "$VP_NODE_VERSION" node "$(dirname "$0")/local-daily.mjs" "$@"
