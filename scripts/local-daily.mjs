@@ -202,7 +202,8 @@ function install() {
     if (backupApp && !NodeFS.existsSync(appPath)) NodeFS.renameSync(backupApp, appPath);
     throw error;
   }
-  run("open", ["-a", appPath]);
+  // Agents hosted by T3 inherit this flag for backend CLIs; a desktop launch must not.
+  run("env", ["-u", "ELECTRON_RUN_AS_NODE", "open", "-a", appPath]);
   console.log(`Installed and launched ${appPath}`);
 }
 
