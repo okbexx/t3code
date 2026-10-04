@@ -141,7 +141,11 @@ function build() {
     "--output-dir",
     outputDir,
   ]);
-  const builtApp = NodePath.join(outputDir, "mac-arm64", `${localDesktop.name}.app`);
+  // The upstream builder exports the zip and removes its temporary .app staging directory.
+  const archive = NodePath.join(outputDir, `T3-Code-Local-${version}-arm64.zip`);
+  const unpackedDir = NodePath.join(outputDir, "mac-arm64");
+  run("ditto", ["-x", "-k", archive, unpackedDir]);
+  const builtApp = NodePath.join(unpackedDir, `${localDesktop.name}.app`);
   validateApp(builtApp, version);
   const manifest = {
     version,
