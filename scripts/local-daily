@@ -5,4 +5,5 @@ case "$(uname -s):$(uname -m)" in
   *) echo "This workflow requires Apple Silicon macOS." >&2; exit 1 ;;
 esac
 export VP_NODE_VERSION=24.20.0
+export RUSTUP_TOOLCHAIN=1.95.0
 exec vp env exec --node "$VP_NODE_VERSION" node "$(dirname "$0")/local-daily.mjs" "$@"

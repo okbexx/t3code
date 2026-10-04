@@ -8,6 +8,10 @@ development icon, server data in `~/.t3-local/userdata`, and Chromium data in
 `~/Library/Application Support/t3code-local-v2`. Its default backend port is 13774. It registers `t3code-local` instead of the official app's URL handler.
 Local artifacts have no automatic update feed.
 
+The wrapper selects Node 24.20.0 through Vite Plus and Rust 1.95.0 through
+rustup, without changing the machine's default toolchains. If needed, install
+the Rust toolchain with `rustup toolchain install 1.95.0 --profile minimal`.
+
 From this worktree:
 
 ```sh
