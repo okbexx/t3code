@@ -64,7 +64,7 @@ function validateApp(bundle, version) {
 
 function sync() {
   requireDailyBranch();
-  run("git", ["fetch", "--no-tags", "upstream", "main"]);
+  run("git", ["fetch", "--tags", "upstream", "main"]);
   const [ahead] = git("rev-list", "--left-right", "--count", "main...upstream/main")
     .split(/\s+/)
     .map(Number);
@@ -106,6 +106,10 @@ function check() {
     "@t3tools/shared",
     "--filter",
     "@t3tools/contracts",
+    "--filter",
+    "@t3tools/client-runtime",
+    "--filter",
+    "@t3tools/web",
     "--filter",
     "t3",
     "typecheck",
