@@ -9,6 +9,28 @@ development icon, server data in `~/.t3-local/userdata`, and Chromium data in
 Local artifacts have no automatic update feed.
 They use an ad-hoc signature for local execution, without an Apple distribution certificate.
 
+## Agent-operated updates
+
+The user asks the agent to sync upstream and update Local. The agent owns the
+commands below, conflict resolution, checks, packaging, installation, and
+verification; routine updates do not require the user to run terminal commands.
+This is an on-demand workflow, with no scheduled update task.
+
+Before syncing, check both worktrees for uncommitted user changes. Review the
+merged result and remove a local fix when upstream already provides the same
+behavior. Push the completed `local/daily` commits to the fork. After installation,
+verify the running Local version, its environment identity, provider status, and
+saved desktop/T3 Connect connections, then report the result and any remaining
+user verification. Keep the official app hosting the agent running.
+
+This worktree's gitignored `.env.local` supplies the public T3 Connect build
+settings: `T3CODE_RELAY_URL`, `T3CODE_CLERK_PUBLISHABLE_KEY`,
+`T3CODE_CLERK_CLI_OAUTH_CLIENT_ID`, and `T3CODE_CLERK_JWT_TEMPLATE`. Preserve them
+when updating; omitting them hides cloud features in the rebuilt app. Account
+credentials belong to `~/.t3-local/userdata/secrets`, not the build environment.
+
+## Commands
+
 The wrapper selects Node 24.20.0 through Vite Plus and Rust 1.95.0 through
 rustup, without changing the machine's default toolchains. If needed, install
 the Rust toolchain with `rustup toolchain install 1.95.0 --profile minimal`.
