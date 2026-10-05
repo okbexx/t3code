@@ -4,6 +4,15 @@ T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provid
 
 You can think of T3 Code as an open source "bring-your-own-subscription" alternative to apps like Claude Desktop, Codex App, Cursor Glass and Conductor.
 
+## Personal Local desktop updates
+
+When asked to sync upstream, update T3 Code Local, or include a contribution in
+the installed Local app, read [Local desktop builds](docs/operations/local-daily.md)
+before acting. The agent owns the complete update through installation and
+verification; do not hand the user terminal commands as the result. That document
+is the source of truth for the workflow, configuration, and rollback procedure.
+Keep this entry and the personal build workflow on `local/daily`.
+
 ## What makes T3 Code special?
 
 We have over 400,000 users who love T3 Code. It's important we maintain the things they love as we continue to iterate on the product. Here's a brief list of the things we can never compromise on.
