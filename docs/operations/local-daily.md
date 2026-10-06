@@ -7,6 +7,7 @@ The app is `T3 Code Local`, with bundle ID `com.okbexx.t3code.local`, a blue
 development icon, server data in `~/.t3-local/userdata`, and Chromium data in
 `~/Library/Application Support/t3code-local-v2`. Its default backend port is 13774. It registers `t3code-local` instead of the official app's URL handler.
 Local artifacts have no automatic update feed.
+The desktop-hosted environment is named `Jarl的Local` so clients can distinguish it from the official environment on the same Mac.
 They use an ad-hoc signature for local execution, without an Apple distribution certificate.
 
 ## Agent-operated updates
