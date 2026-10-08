@@ -3,7 +3,6 @@ import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
 import { localDesktop } from "../packages/shared/src/localDesktop.ts";
-import { releasePackageFiles } from "./update-release-package-versions.ts";
 
 const root = NodePath.resolve(NodePath.dirname(NodeURL.fileURLToPath(import.meta.url)), "..");
 const appPath = `/Applications/${localDesktop.name}.app`;
@@ -118,9 +117,10 @@ function check() {
   ]);
 }
 
-function build() {
+async function build() {
   requireDailyBranch();
   run("vp", ["install", "--frozen-lockfile"]);
+  const { releasePackageFiles } = await import("./update-release-package-versions.ts");
   check();
   const sourceCommit = git("rev-parse", "HEAD");
   const upstreamCommit = git("merge-base", "HEAD", "upstream/main");
@@ -253,14 +253,14 @@ try {
       check();
       break;
     case "build":
-      build();
+      await build();
       break;
     case "install":
       install();
       break;
     case "update":
       sync();
-      build();
+      await build();
       install();
       break;
     case "status":
