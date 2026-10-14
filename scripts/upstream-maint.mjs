@@ -36,7 +36,6 @@ const git = (...argv) => run("git", argv);
 const gh = (...argv) => run("gh", argv);
 const ghJson = (...argv) => JSON.parse(gh(...argv));
 const print = (value) => console.log(JSON.stringify(value, null, 2));
-const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
 // Attempts are recorded beside the shared object store so every worktree sees the same
 // history and nothing can be committed by accident.
@@ -64,13 +63,6 @@ function maintainers() {
       .map((line) => line.slice("github:".length).toLowerCase()),
   );
   return cachedMaintainers;
-}
-
-function forkRepository() {
-  const url = git("remote", "get-url", "origin");
-  const match = url.match(/github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/);
-  if (!match) throw new Error(`origin is not a GitHub repository: ${url}`);
-  return match[1];
 }
 
 function readLog() {
@@ -315,16 +307,15 @@ function candidates() {
   print({ query: candidateQuery, searched: issues.length, excluded, candidates: result });
 }
 
+// Push over Git rather than `gh repo sync`: the API refuses upstream workflow changes without the
+// token's `workflow` scope. A plain push only fast-forwards, so a diverged fork main fails here.
 function sync() {
-  const fork = forkRepository();
-  gh("repo", "sync", fork, "--source", upstream, "--branch", "main");
-  const upstreamMain = gh("api", `repos/${upstream}/commits/main`, "--jq", ".sha");
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const forkMain = gh("api", `repos/${fork}/commits/main`, "--jq", ".sha");
-    if (forkMain === upstreamMain) return print({ fork, main: forkMain });
-    sleep(2000);
-  }
-  throw new Error(`${fork} main does not match ${upstream} main after syncing.`);
+  git("fetch", "--quiet", "upstream", "main");
+  git("push", "--quiet", "origin", "refs/remotes/upstream/main:refs/heads/main");
+  const main = git("rev-parse", "refs/remotes/upstream/main");
+  const forkMain = git("ls-remote", "origin", "refs/heads/main").split(/\s+/)[0];
+  if (forkMain !== main) throw new Error("The fork's main does not match upstream main.");
+  print({ main });
 }
 
 function option(name) {
