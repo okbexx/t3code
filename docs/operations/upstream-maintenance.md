@@ -102,7 +102,10 @@ helper by its absolute path: `/Users/jarl/code/jarlone/t3code-daily/scripts/upst
 
 5. Assess the diff and the draft as a dry run of the contribution-triage skill, and fix every gap.
    Open the PR only if it would pass. Otherwise, record a skip.
-6. Commit with a conventional, plain-language title and run `git push -u origin HEAD`. Then run
+6. Run `upstream-maint check <issue>`. If `clear` is false, the issue closed or someone else
+   opened or merged a PR for it. Record a skip that names that PR, report, and stop without
+   pushing. Otherwise, commit with a conventional, plain-language title and run
+   `git push -u origin HEAD`. Then run
    `gh pr create --repo pingdotgg/t3code --base main --head okbexx:<branch>` with the drafted body.
 7. Run `upstream-maint record <issue> pr --pr <number>`, then call `link_pull_request` and
    `watch_pull_request`.

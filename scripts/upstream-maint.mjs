@@ -217,29 +217,44 @@ function status() {
   });
 }
 
+const issueFields = `
+  number title url state createdAt updatedAt bodyText
+  labels(first: 20) { nodes { name } }
+  comments { totalCount }
+  reactions { totalCount }
+  timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT, CONNECTED_EVENT]) {
+    nodes {
+      ... on CrossReferencedEvent { source { ...pr } }
+      ... on ConnectedEvent { subject { ...pr } }
+    }
+  }
+  closedByPullRequestsReferences(first: 10, includeClosedPrs: true) { nodes { ...pr } }`;
+const pullRequestFragment =
+  "fragment pr on PullRequest { number state author { login } repository { nameWithOwner } }";
+
+function linkedPullRequests(issue) {
+  const byNumber = new Map(
+    [
+      ...issue.timelineItems.nodes.map((node) => node.source ?? node.subject),
+      ...issue.closedByPullRequestsReferences.nodes,
+    ]
+      .filter((pr) => pr?.number && pr.repository?.nameWithOwner === upstream)
+      .map((pr) => [pr.number, pr]),
+  );
+  return [...byNumber.values()];
+}
+
+const isLive = (pr) => pr.state === "OPEN" || pr.state === "MERGED";
+
 function searchIssues() {
   const query = `query($q: String!, $after: String) {
     search(query: $q, type: ISSUE, first: 50, after: $after) {
       issueCount
       pageInfo { hasNextPage endCursor }
-      nodes {
-        ... on Issue {
-          number title url createdAt updatedAt bodyText
-          labels(first: 20) { nodes { name } }
-          comments { totalCount }
-          reactions { totalCount }
-          timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT, CONNECTED_EVENT]) {
-            nodes {
-              ... on CrossReferencedEvent { source { ...pr } }
-              ... on ConnectedEvent { subject { ...pr } }
-            }
-          }
-          closedByPullRequestsReferences(first: 10, includeClosedPrs: true) { nodes { ...pr } }
-        }
-      }
+      nodes { ... on Issue { ${issueFields} } }
     }
   }
-  fragment pr on PullRequest { number state author { login } repository { nameWithOwner } }`;
+  ${pullRequestFragment}`;
   const issues = [];
   let after;
   for (let page = 0; page < 6; page += 1) {
@@ -266,15 +281,12 @@ function candidates() {
   const issues = searchIssues();
   const result = [];
   for (const issue of issues) {
-    const pullRequests = [
-      ...issue.timelineItems.nodes.map((node) => node.source ?? node.subject),
-      ...issue.closedByPullRequestsReferences.nodes,
-    ].filter((pr) => pr?.number && pr.repository?.nameWithOwner === upstream);
+    const pullRequests = linkedPullRequests(issue);
     if (attempted.has(issue.number) || pullRequests.some((pr) => pr.author?.login === me)) {
       excluded.attempted += 1;
       continue;
     }
-    if (pullRequests.some((pr) => pr.state === "OPEN" || pr.state === "MERGED")) {
+    if (pullRequests.some(isLive)) {
       excluded.pullRequest += 1;
       continue;
     }
@@ -288,7 +300,7 @@ function candidates() {
       updatedAt: issue.updatedAt,
       comments: issue.comments.totalCount,
       reactions: issue.reactions.totalCount,
-      closedPullRequests: [...new Set(pullRequests.map((pr) => pr.number))],
+      closedPullRequests: pullRequests.map((pr) => pr.number),
       platformHints: [
         ...new Set(
           `${issue.title}\n${issue.bodyText}`
@@ -305,6 +317,41 @@ function candidates() {
       right.createdAt.localeCompare(left.createdAt),
   );
   print({ query: candidateQuery, searched: issues.length, excluded, candidates: result });
+}
+
+// Other contributors keep opening PRs for accepted issues, so a worker checks again right before
+// it pushes. #11043 was lost to a PR that appeared while its worker was paused.
+function check() {
+  const issue = Number(args[0]);
+  if (!Number.isInteger(issue) || issue <= 0) throw new Error("check needs an issue number.");
+  const [owner, name] = upstream.split("/");
+  const query = `query($owner: String!, $name: String!, $number: Int!) {
+    repository(owner: $owner, name: $name) { issue(number: $number) { ${issueFields} } }
+  }
+  ${pullRequestFragment}`;
+  const found = ghJson(
+    "api",
+    "graphql",
+    "-f",
+    `query=${query}`,
+    "-f",
+    `owner=${owner}`,
+    "-f",
+    `name=${name}`,
+    "-F",
+    `number=${issue}`,
+  ).data.repository.issue;
+  if (!found) throw new Error(`#${issue} is not an issue in ${upstream}.`);
+  const me = viewer();
+  const competing = linkedPullRequests(found)
+    .filter((pr) => pr.author?.login !== me && isLive(pr))
+    .map((pr) => ({ number: pr.number, state: pr.state, author: pr.author?.login }));
+  print({
+    issue,
+    state: found.state,
+    competing,
+    clear: found.state === "OPEN" && !competing.length,
+  });
 }
 
 // Push over Git rather than `gh repo sync`: the API refuses upstream workflow changes without the
@@ -351,6 +398,8 @@ function help() {
 
   status       Active attempt and its pull request; records merges and closures.
   candidates   Open accepted bugs without an open or merged PR, excluding attempted issues.
+  check <issue>
+               Whether the issue is still open with no open or merged PR by someone else.
   sync         Fast-forward the fork's main to ${upstream} main.
   record <issue> started --branch ${branchPrefix}<issue>-<slug> [--thread <id>]
   record <issue> pr --pr <number>
@@ -367,6 +416,9 @@ try {
       break;
     case "candidates":
       candidates();
+      break;
+    case "check":
+      check();
       break;
     case "sync":
       sync();
