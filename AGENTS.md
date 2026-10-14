@@ -13,6 +13,13 @@ verification; do not hand the user terminal commands as the result. That documen
 is the source of truth for the workflow, configuration, and rollback procedure.
 Keep this entry and the personal build workflow on `local/daily`.
 
+## Personal upstream maintenance
+
+When asked to continue upstream maintenance, check the maintenance PR, or start the
+next upstream issue, follow [Upstream maintenance loop](docs/operations/upstream-maintenance.md).
+It handles one issue and one pull request at a time and runs only when asked.
+Keep this entry and the workflow on `local/daily`.
+
 ## What makes T3 Code special?
 
 We have over 400,000 users who love T3 Code. It's important we maintain the things they love as we continue to iterate on the product. Here's a brief list of the things we can never compromise on.
